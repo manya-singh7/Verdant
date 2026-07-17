@@ -52,6 +52,11 @@ identify(@Request() req, @Param('id') id: string) {
   return this.plantsService.identify(req.user.userId, id);
 }
 
+  @Post(':id/health')
+assessHealth(@Request() req, @Param('id') id: string) {
+  return this.plantsService.assessHealth(req.user.userId, id);
+}
+
   @Post(':id/photo')
 @UseInterceptors(FileInterceptor('file', {
   storage: diskStorage({

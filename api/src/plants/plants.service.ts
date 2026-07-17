@@ -10,6 +10,50 @@ import { join } from 'path';
 export class PlantsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async assessHealth(userId: string, plantId: string) {
+  const plant = await this.findOne(userId, plantId); // ownership check
+
+  if (!plant.photoUrl) {
+    throw new BadRequestException('This plant has no photo uploaded yet');
+  }
+
+  const filename = plant.photoUrl.replace('/uploads/', '');
+  const filePath = join(process.cwd(), 'uploads', filename);
+  const imageBuffer = await readFile(filePath);
+  const base64Image = imageBuffer.toString('base64');
+
+  const response = await axios.post(
+    'https://api.plant.id/v3/health_assessment',
+    {
+      images: [`data:image/jpeg;base64,${base64Image}`],
+      similar_images: true,
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        'Api-Key': process.env.PLANT_ID_API_KEY,
+      },
+    },
+  );
+
+  const result = response.data.result;
+  const isHealthy = result.is_healthy?.binary ?? null;
+  const diseaseSuggestions = result.disease?.suggestions ?? [];
+  const topDisease = diseaseSuggestions[0] ?? null;
+
+  return {
+    plantId: plant.id,
+    nickname: plant.nickname,
+    isHealthy,
+    topDiseaseSuggestion: topDisease
+      ? { name: topDisease.name, probability: topDisease.probability }
+      : null,
+    allSuggestions: diseaseSuggestions.map((s: any) => ({
+      name: s.name,
+      probability: s.probability,
+    })),
+  };
+}
   async setPhoto(userId: string, plantId: string, photoUrl: string) {
   await this.findOne(userId, plantId); // ownership check
 
