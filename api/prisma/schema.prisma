@@ -24,6 +24,8 @@ model Plant {
   species          String
   scientificName   String?
   photoUrl         String?
+  identifiedSpecies String?
+  identificationConfidence Float?
 
   ownerId          String
   owner            User @relation(fields: [ownerId], references: [id])

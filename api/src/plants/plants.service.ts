@@ -1,7 +1,10 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePlantDto } from './dto/create-plant.dto';
 import { UpdatePlantDto } from './dto/update-plant.dto';
+import axios from 'axios';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
 
 @Injectable()
 export class PlantsService {
@@ -13,6 +16,43 @@ export class PlantsService {
   return this.prisma.plant.update({
     where: { id: plantId },
     data: { photoUrl },
+  });
+}
+  async identify(userId: string, plantId: string) {
+  const plant = await this.findOne(userId, plantId); // ownership check
+
+  if (!plant.photoUrl) {
+    throw new BadRequestException('This plant has no photo uploaded yet');
+  }
+
+  const filename = plant.photoUrl.replace('/uploads/', '');
+  const filePath = join(process.cwd(), 'uploads', filename);
+  const imageBuffer = await readFile(filePath);
+  const base64Image = imageBuffer.toString('base64');
+
+  const response = await axios.post(
+    'https://api.plant.id/v3/identification',
+    {
+      images: [`data:image/jpeg;base64,${base64Image}`],
+      similar_images: true,
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        'Api-Key': process.env.PLANT_ID_API_KEY,
+      },
+    },
+  );
+
+  const suggestions = response.data.result.classification.suggestions;
+  const topMatch = suggestions[0];
+
+  return this.prisma.plant.update({
+    where: { id: plantId },
+    data: {
+      identifiedSpecies: topMatch.name,
+      identificationConfidence: topMatch.probability,
+    },
   });
 }
   create(userId: string, dto: CreatePlantDto) {
