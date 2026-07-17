@@ -13,6 +13,9 @@ import { PlantsService } from './plants.service';
 import { CreatePlantDto } from './dto/create-plant.dto';
 import { UpdatePlantDto } from './dto/update-plant.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UseInterceptors, UploadedFile } from '@nestjs/common';
+import { diskStorage } from 'multer';
 
 @UseGuards(JwtAuthGuard)
 @Controller('plants')
@@ -43,4 +46,18 @@ export class PlantsController {
   remove(@Request() req, @Param('id') id: string) {
     return this.plantsService.remove(req.user.userId, id);
   }
+
+  @Post(':id/photo')
+@UseInterceptors(FileInterceptor('file', {
+  storage: diskStorage({
+    destination: './uploads',
+    filename: (req, file, callback) => {
+      const uniqueName = `${Date.now()}-${file.originalname}`;
+      callback(null, uniqueName);
+    },
+  }),
+}))
+uploadPhoto(@Request() req, @Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+  return this.plantsService.setPhoto(req.user.userId, id, `/uploads/${file.filename}`);
+}
 }

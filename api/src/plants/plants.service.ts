@@ -7,6 +7,14 @@ import { UpdatePlantDto } from './dto/update-plant.dto';
 export class PlantsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async setPhoto(userId: string, plantId: string, photoUrl: string) {
+  await this.findOne(userId, plantId); // ownership check
+
+  return this.prisma.plant.update({
+    where: { id: plantId },
+    data: { photoUrl },
+  });
+}
   create(userId: string, dto: CreatePlantDto) {
     return this.prisma.plant.create({
       data: {
