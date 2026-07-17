@@ -30,6 +30,19 @@ model Plant {
   ownerId          String
   owner            User @relation(fields: [ownerId], references: [id])
 
+  events           PlantEvent[]
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+}
+
+model PlantEvent {
+  id          String   @id @default(cuid())
+  type        String
+  description String
+
+  plantId     String
+  plant       Plant    @relation(fields: [plantId], references: [id])
+
+  createdAt   DateTime @default(now())
 }

@@ -47,6 +47,11 @@ export class PlantsController {
     return this.plantsService.remove(req.user.userId, id);
   }
 
+  @Get(':id/timeline')
+getTimeline(@Request() req, @Param('id') id: string) {
+  return this.plantsService.getTimeline(req.user.userId, id);
+}
+
   @Post(':id/identify')
 identify(@Request() req, @Param('id') id: string) {
   return this.plantsService.identify(req.user.userId, id);
